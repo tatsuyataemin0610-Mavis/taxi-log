@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>計程車記帳</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --border: #2e2e2e;
+    --accent: #f5c518;
+    --green: #4ade80;
+    --red: #f87171;
+    --text: #f0f0f0;
+    --muted: #777;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    min-height: 100vh;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 2px solid var(--accent);
+    padding: 14px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  header h1 { font-size: 17px; font-weight: 900; letter-spacing: 2px; }
+  header h1 span { color: var(--accent); }
+
+  .date-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--surface2);
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+
+  .tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    flex: 1;
+    padding: 11px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+  }
+
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .page { display: none; padding: 14px; }
+  .page.active { display: block; }
+
+  .section-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--muted);
+    margin: 16px 0 8px;
+    text-transform: uppercase;
+  }
+
+  .input-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 7px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .input-row:focus-within { border-color: var(--accent); }
+  .input-icon { font-size: 18px; flex-shrink: 0; }
+
+  .input-info { flex: 1; }
+  .input-label { font-size: 11px; color: var(--muted); margin-bottom: 1px; }
+
+  .input-field {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 17px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+  }
+
+  .input-unit { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+
+  /* 固定開銷設定 */
+  .fixed-note {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 7px;
+    line-height: 1.6;
+  }
+
+  /* 即時小結 */
+  .summary-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-top: 4px;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .sum-item {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 10px;
+  }
+
+  .sum-item.wide { grid-column: 1 / -1; }
+
+  .sum-label { font-size: 10px; color: var(--muted); margin-bottom: 3px; letter-spacing: 1px; }
+
+  .sum-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  .sum-val.big { font-size: 22px; }
+  .sum-val.green { color: var(--green); }
+  .sum-val.red { color: var(--red); }
+  .sum-val.yellow { color: var(--accent); }
+
+  .btn-save {
+    width: 100%;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 12px;
+    padding: 15px;
+    font-size: 15px;
+    font-weight: 900;
+    font-family: 'Noto Sans TC', sans-serif;
+    letter-spacing: 3px;
+    cursor: pointer;
+    margin-top: 16px;
+    transition: all 0.15s;
+  }
+
+  .btn-save:active { transform: scale(0.97); opacity: 0.8; }
+  .btn-save:disabled { opacity: 0.5; }
+
+  /* 月報表 */
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 12px 0;
+  }
+
+  .month-nav button {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+  }
+
+  .month-nav span {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: var(--accent);
+  }
+
+  /* 表格 */
+  .table-wrap { overflow-x: auto; margin-top: 8px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    min-width: 480px;
+  }
+
+  th {
+    background: var(--surface2);
+    color: var(--muted);
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 8px 6px;
+    text-align: center;
+    border-bottom: 2px solid var(--accent);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 8px 6px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  .td-date { text-align: left; color: var(--muted); font-size: 11px; }
+  .td-profit.pos { color: var(--accent); font-weight: 700; }
+  .td-profit.neg { color: var(--red); font-weight: 700; }
+
+  /* 月總結 */
+  .month-summary {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-top: 12px;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+
+  .stat-row:last-child { border-bottom: none; }
+  .stat-name { color: var(--muted); }
+  .stat-val { font-family: 'DM Mono', monospace; font-weight: 500; }
+
+  .empty { text-align: center; color: var(--muted); padding: 40px 0; font-size: 13px; }
+
+  .loading { text-align: center; color: var(--muted); padding: 30px 0; font-size: 13px; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--accent);
+    color: #000;
+    padding: 11px 22px;
+    border-radius: 24px;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1px;
+    transition: transform 0.3s ease;
+    z-index: 999;
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.error { background: var(--red); color: #fff; }
+
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🚕 <span>計程車</span>記帳</h1>
+  <div class="date-badge" id="todayBadge"></div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('record')">今日記帳</div>
+  <div class="tab" onclick="switchTab('report')">月報表</div>
+  <div class="tab" onclick="switchTab('settings')">設定</div>
+</div>
+
+<!-- 今日記帳 -->
+<div class="page active" id="page-record">
+
+  <div class="section-title">收入</div>
+
+  <div class="input-row">
+    <span class="input-icon">💰</span>
+    <div class="input-info">
+      <div class="input-label">UBER 總營收（平台顯示金額）</div>
+      <input class="input-field" type="number" id="revenue" placeholder="0" oninput="updateSummary()">
+    </div>
+    <span class="input-unit">元</span>
+  </div>
+
+  <div class="input-row">
+    <span class="input-icon">🕐</span>
+    <div class="input-info">
+      <div class="input-label">上線小時</div>
+      <input class="input-field" type="number" id="hours" placeholder="0" step="0.5" oninput="updateSummary()">
+    </div>
+    <span class="input-unit">小時</span>
+  </div>
+
+  <div class="input-row">
+    <span class="input-icon">📏</span>
+    <div class="input-info">
+      <div class="input-label">公里數</div>
+      <input class="input-field" type="number" id="km" placeholder="0" oninput="updateSummary()">
+    </div>
+    <span class="input-unit">km</span>
+  </div>
+
+  <div class="section-title">支出</div>
+
+  <div class="input-row">
+    <span class="input-icon">⛽</span>
+    <div class="input-info">
+      <div class="input-label">加油 ＋ ETC ＋ 其他</div>
+      <input class="input-field" type="number" id="fuel" placeholder="0" oninput="updateSummary()">
+    </div>
+    <span class="input-unit">元</span>
+  </div>
+
+  <div class="section-title">今日小結</div>
+
+  <div class="summary-box">
+    <div class="summary-grid">
+      <div class="sum-item">
+        <div class="sum-label">UBER實收</div>
+        <div class="sum-val yellow" id="s-uber">$0</div>
+      </div>
+      <div class="sum-item">
+        <div class="sum-label">固定攤提</div>
+        <div class="sum-val red" id="s-fixed">$0</div>
+      </div>
+      <div class="sum-item">
+        <div class="sum-label">今日淨利</div>
+        <div class="sum-val" id="s-profit">$0</div>
+      </div>
+      <div class="sum-item">
+        <div class="sum-label">時薪</div>
+        <div class="sum-val" id="s-hourly">$0</div>
+      </div>
+      <div class="sum-item wide" style="border:1px solid var(--accent)">
+        <div class="sum-label">本月還差多少打平</div>
+        <div class="sum-val big" id="s-gap">載入中...</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-save" id="saveBtn" onclick="saveRecord()">儲存今日記錄</button>
+</div>
+
+<!-- 月報表 -->
+<div class="page" id="page-report">
+  <div class="month-nav">
+    <button onclick="changeMonth(-1)">‹</button>
+    <span id="monthLabel"></span>
+    <button onclick="changeMonth(1)">›</button>
+  </div>
+  <div id="reportContent"><div class="loading">載入中...</div></div>
+</div>
+
+<!-- 設定 -->
+<div class="page" id="page-settings">
+  <div class="section-title" style="margin-top:12px">每月固定開銷設定</div>
+
+  <div class="fixed-note">
+    固定開銷會自動除以當月出車天數，攤提到每日淨利計算中。
+  </div>
+
+  <div class="input-row">
+    <span class="input-icon">🚗</span>
+    <div class="input-info">
+      <div class="input-label">車貸</div>
+      <input class="input-field" type="number" id="cfg-loan" placeholder="20000">
+    </div>
+    <span class="input-unit">元/月</span>
+  </div>
+
+  <div class="input-row">
+    <span class="input-icon">🏢</span>
+    <div class="input-info">
+      <div class="input-label">行費（靠行費）</div>
+      <input class="input-field" type="number" id="cfg-line" placeholder="4200">
+    </div>
+    <span class="input-unit">元/月</span>
+  </div>
+
+  <div class="input-row">
+    <span class="input-icon">🛡️</span>
+    <div class="input-info">
+      <div class="input-label">保險（車險等）</div>
+      <input class="input-field" type="number" id="cfg-ins" placeholder="0">
+    </div>
+    <span class="input-unit">元/月</span>
+  </div>
+
+  <div class="input-row">
+    <span class="input-icon">👷</span>
+    <div class="input-info">
+      <div class="input-label">勞健保</div>
+      <input class="input-field" type="number" id="cfg-labor" placeholder="2730">
+    </div>
+    <span class="input-unit">元/月</span>
+  </div>
+
+  <div class="input-row">
+    <span class="input-icon">🔧</span>
+    <div class="input-info">
+      <div class="input-label">保養（月均）</div>
+      <input class="input-field" type="number" id="cfg-maintain" placeholder="10000">
+    </div>
+    <span class="input-unit">元/月</span>
+  </div>
+
+  <div class="input-row">
+    <span class="input-icon">👨‍👩‍👧</span>
+    <div class="input-info">
+      <div class="input-label">孝親費</div>
+      <input class="input-field" type="number" id="cfg-parent" placeholder="15000">
+    </div>
+    <span class="input-unit">元/月</span>
+  </div>
+
+  <div class="input-row" style="background:var(--surface2);border-color:var(--accent)">
+    <span class="input-icon">📊</span>
+    <div class="input-info">
+      <div class="input-label">每月固定總計</div>
+      <div class="sum-val yellow" id="cfg-total" style="font-size:20px;font-family:'DM Mono',monospace;padding-top:2px">$0</div>
+    </div>
+    <span class="input-unit">元/月</span>
+  </div>
+
+  <div class="input-row">
+    <span class="input-icon">📅</span>
+    <div class="input-info">
+      <div class="input-label">預計每月出車天數</div>
+      <input class="input-field" type="number" id="cfg-days" placeholder="26">
+    </div>
+    <span class="input-unit">天</span>
+  </div>
+
+  <button class="btn-save" onclick="saveSettings()">儲存設定</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = '/api/records';
+  const today = new Date();
+
+  let reportYear = today.getFullYear();
+  let reportMonth = today.getMonth();
+
+  document.getElementById('todayBadge').textContent =
+    `${today.getMonth()+1}/${today.getDate()}`;
+
+  // 設定預設值
+  const defaultSettings = {
+    loan: 20000, line: 4200, ins: 0, labor: 2730, maintain: 10000, parent: 15000, days: 26
+  };
+
+  function loadSettings() {
+    const s = JSON.parse(localStorage.getItem('taxiSettings') || 'null') || defaultSettings;
+    document.getElementById('cfg-loan').value = s.loan;
+    document.getElementById('cfg-line').value = s.line;
+    document.getElementById('cfg-ins').value = s.ins;
+    document.getElementById('cfg-labor').value = s.labor;
+    document.getElementById('cfg-maintain').value = s.maintain;
+    document.getElementById('cfg-parent').value = s.parent;
+    document.getElementById('cfg-days').value = s.days;
+    updateCfgTotal();
+    return s;
+  }
+
+  function getSettings() {
+    return JSON.parse(localStorage.getItem('taxiSettings') || 'null') || defaultSettings;
+  }
+
+  function getMonthlyFixed() {
+    const s = getSettings();
+    return s.loan + s.line + s.ins + s.labor + s.maintain + s.parent;
+  }
+
+  function getDailyFixed(workedDays) {
+    const total = getMonthlyFixed();
+    const days = workedDays || getSettings().days;
+    return Math.round(total / days);
+  }
+
+  // 本月累計資料快取
+  let monthCache = { profit: 0, days: 0, loaded: false };
+
+  async function loadMonthCache() {
+    const yearMonth = `${today.getFullYear()}年${String(today.getMonth()+1).padStart(2,'0')}月`;
+    try {
+      const res = await fetch(`${API}?yearMonth=${encodeURIComponent(yearMonth)}`);
+      const data = await res.json();
+      const rows = (data.rows || []).slice(1).filter(r => r[0]);
+      const totalProfit = rows.reduce((s, r) => s + (+r[8] || 0), 0);
+      monthCache = { profit: totalProfit, days: rows.length, loaded: true };
+    } catch {
+      monthCache = { profit: 0, days: 0, loaded: false };
+    }
+    updateGap();
+  }
+
+  function updateGap() {
+    const gapEl = document.getElementById('s-gap');
+    if (!gapEl) return;
+    const monthlyFixed = getMonthlyFixed();
+    const remaining = monthlyFixed - monthCache.profit;
+    if (remaining <= 0) {
+      gapEl.textContent = '✅ 已打平！';
+      gapEl.className = 'sum-val big green';
+    } else {
+      gapEl.textContent = '-$' + remaining.toLocaleString();
+      gapEl.className = 'sum-val big red';
+    }
+  }
+
+  function updateCfgTotal() {
+    const loan = +document.getElementById('cfg-loan').value || 0;
+    const line = +document.getElementById('cfg-line').value || 0;
+    const ins  = +document.getElementById('cfg-ins').value  || 0;
+    const labor= +document.getElementById('cfg-labor').value|| 0;
+    const maint= +document.getElementById('cfg-maintain').value||0;
+    const par  = +document.getElementById('cfg-parent').value||0;
+    document.getElementById('cfg-total').textContent = '$' + (loan+line+ins+labor+maint+par).toLocaleString();
+  }
+
+  ['cfg-loan','cfg-line','cfg-ins','cfg-labor','cfg-maintain','cfg-parent'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateCfgTotal);
+  });
+
+  function saveSettings() {
+    const s = {
+      loan:   +document.getElementById('cfg-loan').value || 0,
+      line:   +document.getElementById('cfg-line').value || 0,
+      ins:    +document.getElementById('cfg-ins').value  || 0,
+      labor:  +document.getElementById('cfg-labor').value|| 0,
+      maintain: +document.getElementById('cfg-maintain').value||0,
+      parent: +document.getElementById('cfg-parent').value||0,
+      days:   +document.getElementById('cfg-days').value || 26,
+    };
+    localStorage.setItem('taxiSettings', JSON.stringify(s));
+    showToast('✅ 設定已儲存');
+  }
+
+  function updateSummary() {
+    const revenue = +document.getElementById('revenue').value || 0;
+    const hours   = +document.getElementById('hours').value   || 0;
+    const fuel    = +document.getElementById('fuel').value    || 0;
+    const fixed   = getDailyFixed(); // 用設定的預計出車天數
+    const uberNet = Math.round(revenue * 0.75);
+    const profit  = uberNet - fixed - fuel;
+    const hourly  = hours > 0 ? Math.round(profit / hours) : 0;
+
+    document.getElementById('s-uber').textContent = '$' + uberNet.toLocaleString();
+    document.getElementById('s-fixed').textContent = '-$' + fixed.toLocaleString();
+    const pEl = document.getElementById('s-profit');
+    pEl.textContent = (profit >= 0 ? '+' : '') + '$' + profit.toLocaleString();
+    pEl.className = 'sum-val ' + (profit >= 0 ? 'green' : 'red');
+    document.getElementById('s-hourly').textContent = '$' + hourly.toLocaleString();
+    updateGap();
+  }
+
+  async function saveRecord() {
+    const revenue = +document.getElementById('revenue').value || 0;
+    if (!revenue) { showToast('請輸入今日營收', true); return; }
+
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true;
+    btn.textContent = '儲存中...';
+
+    const fixed = getDailyFixed();
+    const dateStr = today.toISOString().split('T')[0];
+
+    try {
+      const res = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: dateStr,
+          fixed,
+          fuel: +document.getElementById('fuel').value || 0,
+          km:   +document.getElementById('km').value   || 0,
+          hours:+document.getElementById('hours').value|| 0,
+          revenue,
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('✅ 已寫入試算表！');
+        ['revenue','hours','km','fuel'].forEach(id => document.getElementById(id).value = '');
+        // 更新本月cache
+        monthCache.profit += data.profit || 0;
+        monthCache.days += 1;
+        updateSummary();
+        updateGap();
+      } else {
+        showToast('❌ 失敗：' + data.error, true);
+      }
+    } catch(e) {
+      showToast('❌ 網路錯誤', true);
+    }
+
+    btn.disabled = false;
+    btn.textContent = '儲存今日記錄';
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((t,i) => {
+      t.classList.toggle('active', ['record','report','settings'][i] === tab);
+    });
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + tab).classList.add('active');
+    if (tab === 'report') loadReport();
+    if (tab === 'settings') loadSettings();
+  }
+
+  function changeMonth(dir) {
+    reportMonth += dir;
+    if (reportMonth > 11) { reportMonth = 0; reportYear++; }
+    if (reportMonth < 0)  { reportMonth = 11; reportYear--; }
+    loadReport();
+  }
+
+  async function loadReport() {
+    const yearMonth = `${reportYear}年${String(reportMonth+1).padStart(2,'0')}月`;
+    document.getElementById('monthLabel').textContent = yearMonth;
+    document.getElementById('reportContent').innerHTML = '<div class="loading">載入中...</div>';
+
+    try {
+      const res = await fetch(`${API}?yearMonth=${encodeURIComponent(yearMonth)}`);
+      const data = await res.json();
+      renderReport(data.rows || [], yearMonth);
+    } catch {
+      document.getElementById('reportContent').innerHTML = '<div class="empty">載入失敗</div>';
+    }
+  }
+
+  function renderReport(rows, yearMonth) {
+    if (rows.length <= 1) {
+      document.getElementById('reportContent').innerHTML = '<div class="empty">本月尚無記錄</div>';
+      return;
+    }
+
+    const dataRows = rows.slice(1); // 跳過表頭
+    let totalRevenue = 0, totalUber = 0, totalFuel = 0, totalFixed = 0, totalProfit = 0, totalHours = 0, totalKm = 0;
+
+    let tableHTML = `
+      <div class="table-wrap">
+      <table>
+        <tr>
+          <th>日期</th>
+          <th>營收</th>
+          <th>實收</th>
+          <th>固定</th>
+          <th>油費</th>
+          <th>時數</th>
+          <th style="color:var(--accent)">淨利</th>
+        </tr>
+    `;
+
+    dataRows.forEach(r => {
+      if (!r[0]) return;
+      const revenue = +r[5] || 0;
+      const uber    = +r[6] || 0;
+      const fixed   = +r[1] || 0;
+      const fuel    = +r[2] || 0;
+      const hours   = +r[4] || 0;
+      const km      = +r[3] || 0;
+      const profit  = +r[8] || 0;
+
+      totalRevenue += revenue;
+      totalUber    += uber;
+      totalFixed   += fixed;
+      totalFuel    += fuel;
+      totalProfit  += profit;
+      totalHours   += hours;
+      totalKm      += km;
+
+      const cls = profit >= 0 ? 'pos' : 'neg';
+      tableHTML += `<tr>
+        <td class="td-date">${r[0]}</td>
+        <td>${revenue.toLocaleString()}</td>
+        <td style="color:var(--accent)">${uber.toLocaleString()}</td>
+        <td style="color:var(--red)">${fixed.toLocaleString()}</td>
+        <td style="color:var(--red)">${fuel.toLocaleString()}</td>
+        <td>${hours}</td>
+        <td class="td-profit ${cls}">${profit >= 0 ? '+' : ''}${profit.toLocaleString()}</td>
+      </tr>`;
+    });
+
+    tableHTML += '</table></div>';
+
+    const avgHourly = totalHours > 0 ? Math.round(totalProfit / totalHours) : 0;
+    const days = dataRows.filter(r => r[0]).length;
+
+    const summaryHTML = `
+      <div class="month-summary">
+        <div class="stat-row">
+          <span class="stat-name">UBER總營收</span>
+          <span class="stat-val">$${totalRevenue.toLocaleString()}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">UBER實收（扣25%）</span>
+          <span class="stat-val" style="color:var(--accent)">$${totalUber.toLocaleString()}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">固定開銷攤提</span>
+          <span class="stat-val" style="color:var(--red)">-$${totalFixed.toLocaleString()}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">油費/ETC/其他</span>
+          <span class="stat-val" style="color:var(--red)">-$${totalFuel.toLocaleString()}</span>
+        </div>
+        <div class="stat-row" style="border-top:2px solid var(--accent);margin-top:4px;padding-top:12px">
+          <span class="stat-name" style="color:var(--text);font-weight:700">本月淨利</span>
+          <span class="stat-val" style="font-size:20px;color:${totalProfit>=0?'var(--accent)':'var(--red)'}">
+            ${totalProfit>=0?'+':''}$${totalProfit.toLocaleString()}
+          </span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">出車天數</span>
+          <span class="stat-val">${days} 天</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">平均時薪</span>
+          <span class="stat-val">$${avgHourly.toLocaleString()}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">總里程</span>
+          <span class="stat-val">${totalKm.toLocaleString()} km</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-name">總上線時數</span>
+          <span class="stat-val">${totalHours} 小時</span>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('reportContent').innerHTML = tableHTML + summaryHTML;
+  }
+
+  function showToast(msg, isError = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast' + (isError ? ' error' : '');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // 初始化
+  loadSettings();
+  updateSummary();
+  loadMonthCache();
+</script>
+</body>
+</html>
