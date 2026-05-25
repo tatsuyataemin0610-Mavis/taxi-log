@@ -407,6 +407,8 @@
 
     const days = Object.keys(dayMap).length;
     const avgH = tHours>0 ? Math.round(tProfit/tHours) : 0;
+    const monthly = getMonthlyFixed();
+    const gap = monthly - tProfit;
 
     html += `<div class="month-summary">
       <div class="stat-row"><span class="stat-name">總實收</span><span class="stat-val" style="color:var(--accent)">$${tIncome.toLocaleString()}</span></div>
@@ -416,6 +418,11 @@
         <span class="stat-name" style="color:var(--text);font-weight:700">本月淨利</span>
         <span class="stat-val" style="font-size:20px;color:${tProfit>=0?'var(--accent)':'var(--red)'}">
           ${tProfit>=0?'+':''}$${tProfit.toLocaleString()}</span>
+      </div>
+      <div class="stat-row" style="background:var(--surface2);border-radius:8px;padding:10px 12px;margin-top:4px">
+        <span class="stat-name">本月還差多少打平</span>
+        <span class="stat-val" style="font-size:18px;color:${gap<=0?'var(--green)':'var(--red)'}">
+          ${gap<=0?'✅ 已打平！':'-$'+gap.toLocaleString()}</span>
       </div>
       <div class="stat-row"><span class="stat-name">出車天數</span><span class="stat-val">${days} 天</span></div>
       <div class="stat-row"><span class="stat-name">平均時薪</span><span class="stat-val">$${avgH.toLocaleString()}</span></div>
