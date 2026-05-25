@@ -524,7 +524,7 @@
       const res = await fetch(`${API}?yearMonth=${encodeURIComponent(yearMonth)}`);
       const data = await res.json();
       const rows = (data.rows || []).slice(1).filter(r => r[0]);
-      const totalProfit = rows.reduce((s, r) => s + (+r[8] || 0), 0);
+      const totalProfit = rows.reduce((s, r) => s + (+(String(r[8] || '0').replace(/,/g, '')) || 0), 0);
       monthCache = { profit: totalProfit, days: rows.length, loaded: true };
     } catch {
       monthCache = { profit: 0, days: 0, loaded: false };
@@ -690,15 +690,17 @@
         </tr>
     `;
 
+    const parseNum = v => +(String(v || '0').replace(/,/g, '')) || 0;
+
     dataRows.forEach(r => {
       if (!r[0]) return;
-      const revenue = +r[5] || 0;
-      const uber    = +r[6] || 0;
-      const fixed   = +r[1] || 0;
-      const fuel    = +r[2] || 0;
-      const hours   = +r[4] || 0;
-      const km      = +r[3] || 0;
-      const profit  = +r[8] || 0;
+      const revenue = parseNum(r[5]);
+      const uber    = parseNum(r[6]);
+      const fixed   = parseNum(r[1]);
+      const fuel    = parseNum(r[2]);
+      const hours   = parseNum(r[4]);
+      const km      = parseNum(r[3]);
+      const profit  = parseNum(r[8]);
 
       totalRevenue += revenue;
       totalUber    += uber;
