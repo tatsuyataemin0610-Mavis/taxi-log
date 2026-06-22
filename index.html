@@ -308,17 +308,23 @@
     else          { el.textContent='-$'+rem.toLocaleString(); el.className='sum-val big red'; }
   }
 
-  // 儲存
   async function saveRecord() {
     const income = +document.getElementById('income').value || 0;
-    if (!income) { showToast('請輸入實收金額', true); return; }
+    const fuel   = +document.getElementById('fuel').value   || 0;
+    const hours  = +document.getElementById('hours').value  || 0;
+    const s      = +document.getElementById('kmStart').value || 0;
+    const e      = +document.getElementById('kmEnd').value   || 0;
+    const km     = e > s ? e - s : 0;
+
+    if (!income && !fuel && !hours && !km) {
+      showToast('請至少填入一個欄位', true);
+      return;
+    }
+
     const dateVal = document.getElementById('recordDate').value;
     if (!dateVal) { showToast('請選擇日期', true); return; }
 
-    const s     = +document.getElementById('kmStart').value || 0;
-    const e     = +document.getElementById('kmEnd').value   || 0;
-    const km    = e > s ? e - s : 0;
-    const fixed = getDailyFixed();
+    const fixed = income > 0 ? getDailyFixed() : 0;
 
     const btn = document.getElementById('saveBtn');
     btn.disabled = true; btn.textContent = '儲存中...';
