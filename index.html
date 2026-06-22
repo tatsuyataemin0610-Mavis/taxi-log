@@ -387,11 +387,13 @@
       const date = r[0];
       if (!dayMap[date]) dayMap[date]={income:0,fixed:0,fuel:0,km:0,hours:0,profit:0};
       dayMap[date].income += pn(r[5]);
-      dayMap[date].fixed  += pn(r[1]);
       dayMap[date].fuel   += pn(r[2]);
       dayMap[date].km     += pn(r[3]);
       dayMap[date].hours  += pn(r[4]);
-      dayMap[date].profit += pn(r[7]);
+      // 固定攤提只取最大那筆（純支出行的固定是0，不要重複累加）
+      dayMap[date].fixed = Math.max(dayMap[date].fixed, pn(r[1]));
+      // 淨利重新計算，不直接用試算表的值
+      dayMap[date].profit = dayMap[date].income - dayMap[date].fixed - dayMap[date].fuel;
     });
 
     let tIncome=0,tFixed=0,tFuel=0,tKm=0,tHours=0,tProfit=0;
@@ -400,7 +402,11 @@
       <th>日期</th><th>實收</th><th>固定</th><th>油費</th><th>時數</th>
       <th style="color:var(--accent)">淨利</th></tr>`;
 
-    Object.entries(dayMap).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([date,d])=>{
+    Object.entries(dayMap).sort((a,b)=>{
+      const pa = a[0].replace(/(\d+)月(\d+)日/,'$1/$2').split('/').map(Number);
+      const pb = b[0].replace(/(\d+)月(\d+)日/,'$1/$2').split('/').map(Number);
+      return pa[0]-pb[0] || pa[1]-pb[1];
+    }).forEach(([date,d])=>{
       tIncome+=d.income;tFixed+=d.fixed;tFuel+=d.fuel;tKm+=d.km;tHours+=d.hours;tProfit+=d.profit;
       const cls=d.profit>=0?'pos':'neg';
       html+=`<tr>
