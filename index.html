@@ -219,7 +219,6 @@
   document.getElementById('todayBadge').textContent = `${today.getMonth()+1}/${today.getDate()}`;
   document.getElementById('recordDate').value = todayStr;
 
-  // 公里數
   function updateKm() {
     const s = +document.getElementById('kmStart').value || 0;
     const e = +document.getElementById('kmEnd').value   || 0;
@@ -228,7 +227,6 @@
     updateSummary();
   }
 
-  // 設定
   const DEF = { loan:20000, line:4200, ins:0, labor:2730, maintain:10000, parent:15000, days:26 };
   function getSettings() { return JSON.parse(localStorage.getItem('taxiSettings')||'null') || DEF; }
   function getMonthlyFixed() { const s=getSettings(); return s.loan+s.line+s.ins+s.labor+s.maintain+s.parent; }
@@ -269,17 +267,16 @@
     showToast('✅ 設定已儲存');
   }
 
-  // 小結
   function updateSummary() {
     const income = +document.getElementById('income').value || 0;
     const hours  = +document.getElementById('hours').value  || 0;
     const fuel   = +document.getElementById('fuel').value   || 0;
-    const fixed  = getDailyFixed();
+    const fixed  = income > 0 ? getDailyFixed() : 0;
     const profit = income - fixed - fuel;
     const hourly = hours > 0 ? Math.round(profit/hours) : 0;
 
     document.getElementById('s-income').textContent = '$' + income.toLocaleString();
-    document.getElementById('s-fixed').textContent  = '-$' + fixed.toLocaleString();
+    document.getElementById('s-fixed').textContent  = income > 0 ? '-$' + fixed.toLocaleString() : '$0';
     const pEl = document.getElementById('s-profit');
     pEl.textContent = (profit>=0?'+':'') + '$' + profit.toLocaleString();
     pEl.className = 'sum-val ' + (profit>=0?'green':'red');
@@ -287,7 +284,6 @@
     updateGap();
   }
 
-  // 本月差距
   async function loadMonthCache() {
     const ym = `${today.getFullYear()}年${String(today.getMonth()+1).padStart(2,'0')}月`;
     try {
@@ -332,7 +328,7 @@
     try {
       const res  = await fetch(API, {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ date:dateVal, fixed, fuel:+document.getElementById('fuel').value||0, km, hours:+document.getElementById('hours').value||0, income })
+        body: JSON.stringify({ date:dateVal, fixed, fuel, km, hours, income })
       });
       const data = await res.json();
       if (data.success) {
@@ -348,7 +344,6 @@
     btn.disabled = false; btn.textContent = '儲存這筆記錄';
   }
 
-  // Tab
   function switchTab(tab) {
     document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active',['record','report','settings'][i]===tab));
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -380,7 +375,6 @@
   function renderReport(rows) {
     if (rows.length<=1) { document.getElementById('reportContent').innerHTML='<div class="empty">本月尚無記錄</div>'; return; }
 
-    // 按日期合併
     const dayMap = {};
     rows.slice(1).forEach(r => {
       if (!r[0]) return;
@@ -390,9 +384,7 @@
       dayMap[date].fuel   += pn(r[2]);
       dayMap[date].km     += pn(r[3]);
       dayMap[date].hours  += pn(r[4]);
-      // 固定攤提只取最大那筆（純支出行的固定是0，不要重複累加）
       dayMap[date].fixed = Math.max(dayMap[date].fixed, pn(r[1]));
-      // 淨利重新計算，不直接用試算表的值
       dayMap[date].profit = dayMap[date].income - dayMap[date].fixed - dayMap[date].fuel;
     });
 
@@ -402,7 +394,7 @@
       <th>日期</th><th>實收</th><th>固定</th><th>油費</th><th>時數</th>
       <th style="color:var(--accent)">淨利</th></tr>`;
 
-    Object.entries(dayMap).sort((a,b)=>{.forEach(([date,d])=>{
+    Object.entries(dayMap).sort((a,b)=>{
       const pa = a[0].replace(/(\d+)月(\d+)日/,'$1/$2').split('/').map(Number);
       const pb = b[0].replace(/(\d+)月(\d+)日/,'$1/$2').split('/').map(Number);
       return pa[0]-pb[0] || pa[1]-pb[1];
