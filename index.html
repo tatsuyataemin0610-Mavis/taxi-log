@@ -402,7 +402,7 @@
       <th>日期</th><th>實收</th><th>固定</th><th>油費</th><th>時數</th>
       <th style="color:var(--accent)">淨利</th></tr>`;
 
-    Object.entries(dayMap).sort((a,b)=>{
+    Object.entries(dayMap).sort((a,b)=>{.forEach(([date,d])=>{
       const pa = a[0].replace(/(\d+)月(\d+)日/,'$1/$2').split('/').map(Number);
       const pb = b[0].replace(/(\d+)月(\d+)日/,'$1/$2').split('/').map(Number);
       return pa[0]-pb[0] || pa[1]-pb[1];
